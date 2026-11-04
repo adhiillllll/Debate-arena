@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DebateVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum DebateStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum DebateParticipantRole {
+  MODERATOR
+  DEBATER
+  AUDIENCE
+}
+
+enum ParticipantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  INVITED
+}
+
+enum DebateRoundType {
+  OPENING_STATEMENT
+  MAIN_ARGUMENT
+  REBUTTAL
+  CLOSING_STATEMENT
+  CUSTOM
+}
+
+enum DebateRoundStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  SKIPPED
+}
+
+model User {
+  id          String   @id @db.Uuid
+  username    String?  @unique
+  displayName String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  hostedDebates Debate[] @relation("DebateHost")
+
+  debateParticipations DebateParticipant[]
+
+  votes Vote[]
+
+  @@map("profiles")
+}
+
+model Debate {
+  id          String           @id @default(uuid()) @db.Uuid
+  title       String
+  topic       String
+  description String?
+  visibility  DebateVisibility @default(PUBLIC)
+  status      DebateStatus     @default(DRAFT)
+  hostId      String           @db.Uuid
+  maxDebaters Int              @default(2)
+  startsAt    DateTime?        @db.Timestamptz(6)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+
+  host User @relation("DebateHost", fields: [hostId], references: [id], onDelete: Restrict)
+
+  participants DebateParticipant[]
+
+  rounds DebateRound[]
+
+  transcripts Transcript[]
+
+  votes Vote[]
+
+  report DebateReport?
+
+  @@index([visibility, status])
+  @@index([hostId])
+  @@map("debates")
+}
+
+model DebateParticipant {
+  id        String                @id @default(uuid()) @db.Uuid
+  debateId  String                @db.Uuid
+  userId    String                @db.Uuid
+  role      DebateParticipantRole
+  status    ParticipantStatus     @default(PENDING)
+  joinedAt  DateTime?             @db.Timestamptz(6)
+  createdAt DateTime              @default(now()) @db.Timestamptz(6)
+
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transcripts Transcript[]
+
+  votesReceived Vote[] @relation("VoteTarget")
+
+  @@unique([debateId, userId])
+  @@index([debateId, role, status])
+  @@index([userId, status])
+  @@map("debate_participants")
+}
+
+model DebateRound {
+  id              String            @id @default(uuid()) @db.Uuid
+  debateId        String            @db.Uuid
+  roundNumber     Int
+  title           String
+  type            DebateRoundType   @default(CUSTOM)
+  durationSeconds Int               @default(120)
+  status          DebateRoundStatus @default(PENDING)
+  instructions    String?
+  startedAt       DateTime?         @db.Timestamptz(6)
+  endedAt         DateTime?         @db.Timestamptz(6)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  transcripts Transcript[]
+
+  @@unique([debateId, roundNumber])
+  @@index([debateId, status])
+  @@map("debate_rounds")
+}
+
+model Transcript {
+  id            String    @id @default(uuid()) @db.Uuid
+  debateId      String    @db.Uuid
+  roundId       String?   @db.Uuid
+  participantId String?   @db.Uuid
+  text          String
+  language      String?
+  isFinal       Boolean   @default(false)
+  startedAt     DateTime? @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+
+  debate      Debate             @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  round       DebateRound?       @relation(fields: [roundId], references: [id], onDelete: SetNull)
+  participant DebateParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+
+  @@index([debateId, createdAt])
+  @@index([roundId, createdAt])
+  @@index([participantId])
+  @@map("transcripts")
+}
+
+model Vote {
+  id                    String   @id @default(uuid()) @db.Uuid
+  debateId              String   @db.Uuid
+  voterUserId           String   @db.Uuid
+  votedForParticipantId String   @db.Uuid
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  voter User @relation(fields: [voterUserId], references: [id], onDelete: Cascade)
+
+  votedFor DebateParticipant @relation("VoteTarget", fields: [votedForParticipantId], references: [id], onDelete: Cascade)
+
+  @@unique([debateId, voterUserId])
+  @@index([debateId, votedForParticipantId])
+  @@map("votes")
+}
+
+model DebateReport {
+  id          String   @id @default(uuid()) @db.Uuid
+  debateId    String   @unique @db.Uuid
+  summary     String
+  reportData  Json
+  generatedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  @@map("debate_reports")
+}
