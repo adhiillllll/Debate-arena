@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState , useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   ControlBar,
   LiveKitRoom,
@@ -11,6 +11,7 @@ import "@livekit/components-styles";
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import SignOutButton from "@/components/auth/signout-button";
+import DashboardSidebar from "@/components/dashboard-sidebar";
 
 type ConnectionDetails = {
   serverUrl: string;
@@ -38,11 +39,11 @@ function LiveTranscriptPanel() {
       topic?: string
     ) => {
       console.log("LiveKit data received:", {
-  topic,
-  payload: new TextDecoder().decode(payload),
-});
+        topic,
+        payload: new TextDecoder().decode(payload),
+      });
 
-if (topic !== "debate-transcript") return;
+      if (topic !== "debate-transcript") return;
       try {
         const decoded = new TextDecoder().decode(payload);
         const message = JSON.parse(decoded) as TranscriptMessage;
@@ -167,135 +168,145 @@ export default function Home() {
 
   if (connection) {
     return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
 
-        <div className="mb-4 flex items-center justify-between">
+        <DashboardSidebar />
+
+        <div className="min-w-0 flex-1 p-6">
+          <div className="mb-4 flex items-center justify-between">
             <h1 className="text-3xl font-bold">Debate Arena</h1>
-            <SignOutButton />
-        </div>
-        
-
-        <p className="mb-6 text-slate-300">
-          Room: {roomName} · Participant: {participantName}
-        </p>
-
-        <LiveKitRoom
-          serverUrl={connection.serverUrl}
-          token={connection.token}
-          connect={true}
-          audio={true}
-          video={false}
-          onDisconnected={() => setConnection(null)}
-        >
-          <div
-            data-lk-theme="default"
-            className="mx-auto max-w-2xl rounded-xl bg-white p-6 text-slate-900"
-          >
-            <h2 className="mb-3 text-xl font-semibold">
-              Live audio room
-            </h2>
-
-            <p className="mb-5 text-sm text-slate-600">
-              Allow microphone access and join from another device
-              using the same room name.
-            </p>
-
-            <RoomAudioRenderer />
-
-            <ControlBar
-              controls={{
-                microphone: true,
-                camera: false,
-                screenShare: false,
-              }}
-            />
-
-            <LiveTranscriptPanel />
-            
           </div>
-        </LiveKitRoom>
+
+          <p className="mb-6 text-slate-600">
+            Room: {roomName} · Participant: {participantName}
+          </p>
+
+          <LiveKitRoom
+            serverUrl={connection.serverUrl}
+            token={connection.token}
+            connect={true}
+            audio={true}
+            video={false}
+            onDisconnected={() => setConnection(null)}
+          >
+            <div
+              data-lk-theme="default"
+              className="mx-auto max-w-2xl rounded-xl bg-white p-6 text-slate-900 shadow-sm"
+            >
+              <h2 className="mb-3 text-xl font-semibold">
+                Live audio room
+              </h2>
+
+              <p className="mb-5 text-sm text-slate-600">
+                Allow microphone access and join from another device
+                using the same room name.
+              </p>
+
+              <RoomAudioRenderer />
+
+              <ControlBar
+                controls={{
+                  microphone: true,
+                  camera: false,
+                  screenShare: false,
+                }}
+              />
+
+              <LiveTranscriptPanel />
+            </div>
+          </LiveKitRoom>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-white">
-      <section className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-7">
-        <p className="mb-2 text-sm font-medium text-blue-400">
-          PHASE 1 · AUDIO FOUNDATION
-        </p>
+    <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
 
-        <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Debate Arena</h1>
-            <SignOutButton />
-        </div>
+      <DashboardSidebar />
 
-        <p className="mb-6 text-slate-300">
-          Join a test room with another participant.
-        </p>
+      <div className="flex flex-1 items-center justify-center p-6">
+        <section className="w-full max-w-md rounded-2xl border border-[#E5DFD2] bg-white p-7 shadow-sm">
+          <p className="mb-2 text-sm font-medium text-[#B58A42]">
+            PHASE 1 · AUDIO FOUNDATION
+          </p>
 
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void joinRoom();
-          }}
-        >
-          <div>
-            <label htmlFor="room" className="mb-1 block text-sm">
-              Room name
-            </label>
-
-            <input
-              id="room"
-              value={roomName}
-              onChange={(event) => setRoomName(event.target.value)}
-              required
-              pattern="[a-zA-Z0-9_-]{1,64}"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3"
-            />
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-[#192F50]">
+              Debate Arena
+            </h1>
           </div>
 
-          <div>
-            <label
-              htmlFor="participant"
-              className="mb-1 block text-sm"
-            >
-              Participant identity
-            </label>
+          <p className="mb-6 text-slate-600">
+            Join a test room with another participant.
+          </p>
 
-            <input
-              id="participant"
-              value={participantName}
-              onChange={(event) =>
-                setParticipantName(event.target.value)
-              }
-              required
-              pattern="[a-zA-Z0-9_-]{1,64}"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3"
-            />
-          </div>
-
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 p-3 font-semibold hover:bg-blue-500 disabled:opacity-50"
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void joinRoom();
+            }}
           >
-            {loading ? "Connecting..." : "Join audio room"}
-          </button>
-        </form>
+            <div>
+              <label
+                htmlFor="room"
+                className="mb-1 block text-sm text-slate-700"
+              >
+                Room name
+              </label>
 
-        <p className="mt-5 text-xs text-slate-400">
-          Development test only. Participant names are not yet
-          verified through sign-in.
-        </p>
-      </section>
+              <input
+                id="room"
+                value={roomName}
+                onChange={(event) => setRoomName(event.target.value)}
+                required
+                pattern="[a-zA-Z0-9_-]{1,64}"
+                className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900 outline-none focus:border-[#D9AD60]"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="participant"
+                className="mb-1 block text-sm text-slate-700"
+              >
+                Participant identity
+              </label>
+
+              <input
+                id="participant"
+                value={participantName}
+                onChange={(event) =>
+                  setParticipantName(event.target.value)
+                }
+                required
+                pattern="[a-zA-Z0-9_-]{1,64}"
+                className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900 outline-none focus:border-[#D9AD60]"
+              />
+            </div>
+
+            {error && (
+              <p role="alert" className="text-sm text-red-500">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-[#192F50] p-3 font-semibold text-white transition-colors hover:bg-[#304765] disabled:opacity-50"
+            >
+              {loading ? "Connecting..." : "Join audio room"}
+            </button>
+          </form>
+
+          <p className="mt-5 text-xs text-slate-500">
+            Development test only. Participant names are not yet
+            verified through sign-in.
+          </p>
+        </section>
+      </div>
     </main>
   );
 }
