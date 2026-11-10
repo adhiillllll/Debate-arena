@@ -12,6 +12,7 @@ import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import SignOutButton from "@/components/auth/signout-button";
 import DashboardSidebar from "@/components/dashboard-sidebar";
+import DashboardOverview from "@/components/dashboard-overview";
 
 type ConnectionDetails = {
   serverUrl: string;
@@ -135,6 +136,7 @@ export default function Home() {
     useState<ConnectionDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAudioTest, setShowAudioTest] = useState(false);
 
   async function joinRoom() {
     setLoading(true);
@@ -222,90 +224,126 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
-
+      
       <DashboardSidebar />
 
-      <div className="flex flex-1 items-center justify-center p-6">
-        <section className="w-full max-w-md rounded-2xl border border-[#E5DFD2] bg-white p-7 shadow-sm">
-          <p className="mb-2 text-sm font-medium text-[#B58A42]">
-            PHASE 1 · AUDIO FOUNDATION
-          </p>
-
-          <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-[#192F50]">
-              Debate Arena
-            </h1>
-          </div>
-
-          <p className="mb-6 text-slate-600">
-            Join a test room with another participant.
-          </p>
-
-          <form
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void joinRoom();
-            }}
-          >
-            <div>
-              <label
-                htmlFor="room"
-                className="mb-1 block text-sm text-slate-700"
-              >
-                Room name
-              </label>
-
-              <input
-                id="room"
-                value={roomName}
-                onChange={(event) => setRoomName(event.target.value)}
-                required
-                pattern="[a-zA-Z0-9_-]{1,64}"
-                className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900 outline-none focus:border-[#D9AD60]"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="participant"
-                className="mb-1 block text-sm text-slate-700"
-              >
-                Participant identity
-              </label>
-
-              <input
-                id="participant"
-                value={participantName}
-                onChange={(event) =>
-                  setParticipantName(event.target.value)
-                }
-                required
-                pattern="[a-zA-Z0-9_-]{1,64}"
-                className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900 outline-none focus:border-[#D9AD60]"
-              />
-            </div>
-
-            {error && (
-              <p role="alert" className="text-sm text-red-500">
-                {error}
-              </p>
-            )}
-
+      <div className="min-w-0 flex-1 p-8">
+        {showAudioTest ? (
+          <section className="mx-auto max-w-md">
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-[#192F50] p-3 font-semibold text-white transition-colors hover:bg-[#304765] disabled:opacity-50"
+              type="button"
+              onClick={() => setShowAudioTest(false)}
+              className="mb-6 text-sm font-semibold text-[#B58A42] hover:underline"
             >
-              {loading ? "Connecting..." : "Join audio room"}
+              ← Back to Dashboard
             </button>
-          </form>
 
-          <p className="mt-5 text-xs text-slate-500">
-            Development test only. Participant names are not yet
-            verified through sign-in.
-          </p>
-        </section>
+            <div className="rounded-2xl border border-[#E5DFD2] bg-white p-7 shadow-sm">
+              <p className="mb-2 text-sm font-medium text-[#B58A42]">
+                PHASE 1 · AUDIO FOUNDATION
+              </p>
+
+              <h1 className="mb-4 text-2xl font-bold">
+                Join Audio Test Room
+              </h1>
+
+              <p className="mb-6 text-slate-500">
+                Join a test room with another participant.
+              </p>
+
+              <form
+                className="space-y-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void joinRoom();
+                }}
+              >
+                <div>
+                  <label
+                    htmlFor="room"
+                    className="mb-1 block text-sm text-slate-700"
+                  >
+                    Room name
+                  </label>
+
+                  <input
+                    id="room"
+                    value={roomName}
+                    onChange={(event) => setRoomName(event.target.value)}
+                    required
+                    pattern="[a-zA-Z0-9_-]{1,64}"
+                    className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="participant"
+                    className="mb-1 block text-sm text-slate-700"
+                  >
+                    Participant identity
+                  </label>
+
+                  <input
+                    id="participant"
+                    value={participantName}
+                    onChange={(event) =>
+                      setParticipantName(event.target.value)
+                    }
+                    required
+                    pattern="[a-zA-Z0-9_-]{1,64}"
+                    className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900"
+                  />
+                </div>
+
+                {error && (
+                  <p role="alert" className="text-sm text-red-500">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-lg bg-[#192F50] p-3 font-semibold text-white hover:bg-[#304765] disabled:opacity-50"
+                >
+                  {loading ? "Connecting..." : "Join audio room"}
+                </button>
+              </form>
+
+              <p className="mt-5 text-xs text-slate-500">
+                Development test only. Participant names are not yet
+                verified through sign-in.
+              </p>
+            </div>
+          </section>
+        ) : (
+          <div className="mx-auto max-w-7xl">
+            <DashboardOverview />
+
+            <section className="mt-8 rounded-2xl border border-[#E5DFD2] bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-bold text-[#192F50]">
+                    Audio Foundation Test
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Test LiveKit microphone and transcription.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAudioTest(true)}
+                  className="rounded-xl bg-[#192F50] px-5 py-3 text-sm font-semibold text-white hover:bg-[#304765]"
+                >
+                  Open Audio Test
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </main>
   );
