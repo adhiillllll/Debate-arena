@@ -115,14 +115,14 @@ export default function DiscoverDebatesPage() {
     }, [search, category, status]);
 
     return (
-        <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
+        <main className="dashboard-shell flex min-h-screen flex-col bg-[#F8F5EC] text-[#192F50] md:flex-row dark:bg-[#101D30] dark:text-[#F8F5EC] dark:[color-scheme:dark]">
             <DashboardSidebar />
 
-            <div className="min-w-0 flex-1 p-8">
+            <div className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-7xl">
                     {/* Header */}
                     <header className="mb-8">
-                        <p className="text-sm font-medium text-[#B58A42]">
+                        <p className="text-sm font-medium text-[#B58A42] dark:text-[#D9AD60]">
                             COMMUNITY ARENA
                         </p>
 
@@ -130,14 +130,14 @@ export default function DiscoverDebatesPage() {
                             Discover Debates
                         </h1>
 
-                        <p className="mt-2 text-slate-500">
+                        <p className="mt-2 text-slate-500 dark:text-slate-300">
                             Explore ideas, challenge perspectives, and join meaningful discussions.
                         </p>
                     </header>
 
                     {/* Search and Filters */}
-                    <section className="mb-8 rounded-2xl border border-[#E5DFD2] bg-white p-5">
-                        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
+                    <section className="mb-8 rounded-2xl border border-[#E5DFD2] bg-white p-5 dark:border-[#3B4C63] dark:bg-[#20334E]">
+                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_180px]">
                             <div>
                                 <label
                                     htmlFor="debate-search"
@@ -151,7 +151,7 @@ export default function DiscoverDebatesPage() {
                                     value={search}
                                     onChange={(event) => setSearch(event.target.value)}
                                     placeholder="Search by topic or keyword..."
-                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                                 />
                             </div>
 
@@ -167,7 +167,7 @@ export default function DiscoverDebatesPage() {
                                     id="category-filter"
                                     value={category}
                                     onChange={(event) => setCategory(event.target.value)}
-                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                                 >
                                     {categories.map((item) => (
                                         <option key={item}>{item}</option>
@@ -187,7 +187,7 @@ export default function DiscoverDebatesPage() {
                                     id="status-filter"
                                     value={status}
                                     onChange={(event) => setStatus(event.target.value)}
-                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                                 >
                                     {statuses.map((item) => (
                                         <option key={item}>{item}</option>
@@ -196,10 +196,10 @@ export default function DiscoverDebatesPage() {
                             </div>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between border-t border-[#E5DFD2] pt-4">
-                            <p className="text-sm text-slate-500">
+                        <div className="mt-4 flex items-center justify-between border-t border-[#E5DFD2] pt-4 dark:border-[#3B4C63]">
+                            <p className="text-sm text-slate-500 dark:text-slate-300">
                                 Showing{" "}
-                                <span className="font-semibold text-[#192F50]">
+                                <span className="font-semibold text-[#192F50] dark:text-[#F8F5EC]">
                                     {filteredDebates.length}
                                 </span>{" "}
                                 debates
@@ -213,7 +213,7 @@ export default function DiscoverDebatesPage() {
                                     setStatus("All Statuses");
                                     setSelectedDebate("");
                                 }}
-                                className="text-sm font-semibold text-[#B58A42] hover:underline"
+                                className="text-sm font-semibold text-[#B58A42] hover:underline dark:text-[#D9AD60]"
                             >
                                 Reset filters
                             </button>
@@ -222,38 +222,38 @@ export default function DiscoverDebatesPage() {
 
                     {/* Debate Cards */}
                     {filteredDebates.length > 0 ? (
-                        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
                             {filteredDebates.map((debate) => (
                                 <article
                                     key={debate.id}
-                                    className="flex flex-col rounded-2xl border border-[#E5DFD2] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-sm"
+                                    className="flex flex-col rounded-2xl border border-[#E5DFD2] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-sm dark:border-[#3B4C63] dark:bg-[#20334E]"
                                 >
-                                    <div className="mb-4 flex items-center justify-between gap-2">
-                                        <span className="rounded-full bg-[#F3EBDD] px-3 py-1 text-xs font-medium text-[#9B7435]">
+                                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                                        <span className="rounded-full bg-[#F3EBDD] px-3 py-1 text-xs font-medium text-[#9B7435] dark:bg-[#2B3543] dark:text-[#D9AD60]">
                                             {debate.category}
                                         </span>
 
                                         <span
                                             className={`rounded-full px-3 py-1 text-xs font-medium ${debate.status === "Live"
-                                                ? "bg-[#E8EFED] text-[#5F9186]"
+                                                ? "bg-[#E8EFED] text-[#5F9186] dark:bg-[#243F40] dark:text-[#9DC7BC]"
                                                 : debate.status === "Upcoming"
-                                                    ? "bg-slate-100 text-slate-500"
-                                                    : "bg-[#EDE8F5] text-[#79649A]"
+                                                    ? "bg-slate-100 text-slate-500 dark:bg-[#2B405C] dark:text-slate-300"
+                                                    : "bg-[#EDE8F5] text-[#79649A] dark:bg-[#38324B] dark:text-[#C7B4E3]"
                                                 }`}
                                         >
                                             {debate.status}
                                         </span>
                                     </div>
 
-                                    <h2 className="text-lg font-bold text-[#192F50]">
+                                    <h2 className="text-lg font-bold text-[#192F50] dark:text-[#F8F5EC]">
                                         {debate.title}
                                     </h2>
 
-                                    <p className="mt-2 flex-1 text-sm leading-6 text-slate-500">
+                                    <p className="mt-2 flex-1 text-sm leading-6 text-slate-500 dark:text-slate-300">
                                         {debate.description}
                                     </p>
 
-                                    <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#E5DFD2] pt-4 text-xs text-slate-500">
+                                    <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#E5DFD2] pt-4 text-xs text-slate-500 dark:border-[#3B4C63] dark:text-slate-300">
                                         <span>{debate.participants} participants</span>
                                         <span>•</span>
                                         <span>{debate.format}</span>
@@ -278,10 +278,10 @@ export default function DiscoverDebatesPage() {
                             ))}
                         </div>
                     ) : (
-                        <section className="rounded-2xl border border-[#E5DFD2] bg-white px-6 py-16 text-center">
+                        <section className="rounded-2xl border border-[#E5DFD2] bg-white px-6 py-16 text-center dark:border-[#3B4C63] dark:bg-[#20334E]">
                             <h2 className="text-xl font-bold">No debates found</h2>
 
-                            <p className="mt-2 text-sm text-slate-500">
+                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
                                 Try changing your search or filters.
                             </p>
 
@@ -303,7 +303,7 @@ export default function DiscoverDebatesPage() {
                     {selectedDebate && (
                         <div
                             role="status"
-                            className="mt-6 rounded-xl border border-[#D9AD60] bg-[#F3EBDD] p-4 text-sm text-[#192F50]"
+                            className="mt-6 rounded-xl border border-[#D9AD60] bg-[#F3EBDD] p-4 text-sm text-[#192F50] dark:bg-[#2B3543] dark:text-[#F8F5EC]"
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <p>{selectedDebate}</p>
@@ -311,7 +311,7 @@ export default function DiscoverDebatesPage() {
                                 <button
                                     type="button"
                                     onClick={() => setSelectedDebate("")}
-                                    className="font-semibold text-[#B58A42] hover:underline"
+                                    className="font-semibold text-[#B58A42] hover:underline dark:text-[#D9AD60]"
                                 >
                                     Dismiss
                                 </button>

@@ -170,11 +170,11 @@ export default function Home() {
 
   if (connection) {
     return (
-      <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
+      <main className="dashboard-shell flex min-h-screen flex-col bg-[#F8F5EC] text-[#192F50] md:flex-row">
 
         <DashboardSidebar />
 
-        <div className="min-w-0 flex-1 p-6">
+        <div className="min-w-0 flex-1 p-4 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-3xl font-bold">Debate Arena</h1>
           </div>
@@ -223,23 +223,23 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
+    <main className="dashboard-shell flex min-h-screen flex-col bg-[#F8F5EC] text-[#192F50] md:flex-row dark:bg-[#101D30] dark:text-[#F8F5EC] dark:[color-scheme:dark]">
       
       <DashboardSidebar />
 
-      <div className="min-w-0 flex-1 p-8">
+      <div className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
         {showAudioTest ? (
           <section className="mx-auto max-w-md">
             <button
               type="button"
               onClick={() => setShowAudioTest(false)}
-              className="mb-6 text-sm font-semibold text-[#B58A42] hover:underline"
+              className="mb-6 text-sm font-semibold text-[#B58A42] hover:underline dark:text-[#D9AD60]"
             >
               ← Back to Dashboard
             </button>
 
-            <div className="rounded-2xl border border-[#E5DFD2] bg-white p-7 shadow-sm">
-              <p className="mb-2 text-sm font-medium text-[#B58A42]">
+            <div className="rounded-2xl border border-[#E5DFD2] bg-white p-7 shadow-sm dark:border-[#3B4C63] dark:bg-[#20334E]">
+              <p className="mb-2 text-sm font-medium text-[#B58A42] dark:text-[#D9AD60]">
                 PHASE 1 · AUDIO FOUNDATION
               </p>
 
@@ -247,7 +247,7 @@ export default function Home() {
                 Join Audio Test Room
               </h1>
 
-              <p className="mb-6 text-slate-500">
+              <p className="mb-6 text-slate-500 dark:text-slate-300">
                 Join a test room with another participant.
               </p>
 
@@ -261,7 +261,7 @@ export default function Home() {
                 <div>
                   <label
                     htmlFor="room"
-                    className="mb-1 block text-sm text-slate-700"
+                    className="mb-1 block text-sm text-slate-700 dark:text-slate-200"
                   >
                     Room name
                   </label>
@@ -272,14 +272,14 @@ export default function Home() {
                     onChange={(event) => setRoomName(event.target.value)}
                     required
                     pattern="[a-zA-Z0-9_-]{1,64}"
-                    className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900"
+                    className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900 dark:border-[#52637C] dark:bg-[#172940] dark:text-[#F8F5EC]"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="participant"
-                    className="mb-1 block text-sm text-slate-700"
+                    className="mb-1 block text-sm text-slate-700 dark:text-slate-200"
                   >
                     Participant identity
                   </label>
@@ -292,7 +292,7 @@ export default function Home() {
                     }
                     required
                     pattern="[a-zA-Z0-9_-]{1,64}"
-                    className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900"
+                    className="w-full rounded-lg border border-[#D8DDE5] bg-[#FAFAF8] p-3 text-slate-900 dark:border-[#52637C] dark:bg-[#172940] dark:text-[#F8F5EC]"
                   />
                 </div>
 
@@ -311,7 +311,7 @@ export default function Home() {
                 </button>
               </form>
 
-              <p className="mt-5 text-xs text-slate-500">
+              <p className="mt-5 text-xs text-slate-500 dark:text-slate-300">
                 Development test only. Participant names are not yet
                 verified through sign-in.
               </p>
@@ -321,14 +321,14 @@ export default function Home() {
           <div className="mx-auto max-w-7xl">
             <DashboardOverview />
 
-            <section className="mt-8 rounded-2xl border border-[#E5DFD2] bg-white p-5">
+            <section className="mt-8 rounded-2xl border border-[#E5DFD2] bg-white p-5 dark:border-[#3B4C63] dark:bg-[#20334E]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-bold text-[#192F50]">
+                  <h2 className="font-bold text-[#192F50] dark:text-[#F8F5EC]">
                     Audio Foundation Test
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
                     Test LiveKit microphone and transcription.
                   </p>
                 </div>

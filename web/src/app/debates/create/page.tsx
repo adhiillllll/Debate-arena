@@ -23,20 +23,20 @@ export default function CreateDebatePage() {
     }
 
     return (
-        <main className="flex min-h-screen bg-[#F8F5EC] text-[#192F50]">
+        <main className="dashboard-shell flex min-h-screen flex-col bg-[#F8F5EC] text-[#192F50] md:flex-row dark:bg-[#101D30] dark:text-[#F8F5EC] dark:[color-scheme:dark]">
             <DashboardSidebar />
 
-            <div className="min-w-0 flex-1 p-8">
+            <div className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
                 <div className="mx-auto max-w-4xl">
                     <Link
                         href="/"
-                        className="mb-6 inline-block text-sm font-semibold text-[#B58A42] hover:underline"
+                        className="mb-6 inline-block text-sm font-semibold text-[#B58A42] hover:underline dark:text-[#D9AD60]"
                     >
                         ← Back to Dashboard
                     </Link>
 
                     <header className="mb-8">
-                        <p className="text-sm font-medium text-[#B58A42]">
+                        <p className="text-sm font-medium text-[#B58A42] dark:text-[#D9AD60]">
                             START A DISCUSSION
                         </p>
 
@@ -44,14 +44,14 @@ export default function CreateDebatePage() {
                             Create a Debate
                         </h1>
 
-                        <p className="mt-2 text-slate-500">
+                        <p className="mt-2 text-slate-500 dark:text-slate-300">
                             Set the topic, choose the format, and invite others to challenge your ideas.
                         </p>
                     </header>
 
                     <form
                         onSubmit={handleSubmit}
-                        className="space-y-6 rounded-2xl border border-[#E5DFD2] bg-white p-7 shadow-sm"
+                        className="space-y-6 rounded-2xl border border-[#E5DFD2] bg-white p-5 shadow-sm sm:p-7 dark:border-[#3B4C63] dark:bg-[#20334E]"
                     >
                         {/* Debate Topic */}
                         <section>
@@ -69,10 +69,10 @@ export default function CreateDebatePage() {
                                 required
                                 maxLength={150}
                                 placeholder="e.g. Is artificial intelligence beneficial for society?"
-                                className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                             />
 
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-slate-400 dark:text-slate-400">
                                 Keep your topic clear and debatable.
                             </p>
                         </section>
@@ -94,7 +94,7 @@ export default function CreateDebatePage() {
                                 maxLength={1000}
                                 rows={4}
                                 placeholder="Explain the context and what participants will debate..."
-                                className="w-full resize-y rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                className="w-full resize-y rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                             />
                         </section>
 
@@ -111,7 +111,7 @@ export default function CreateDebatePage() {
                                 id="category"
                                 value={category}
                                 onChange={(event) => setCategory(event.target.value)}
-                                className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                             >
                                 <option>Technology</option>
                                 <option>Education</option>
@@ -138,12 +138,12 @@ export default function CreateDebatePage() {
                                         type="button"
                                         onClick={() => setFormat(item)}
                                         className={`rounded-xl border p-4 text-left transition ${format === item
-                                            ? "border-[#D9AD60] bg-[#F3EBDD] font-semibold"
-                                            : "border-[#E5DFD2] hover:border-[#D9AD60]"
+                                            ? "border-[#D9AD60] bg-[#F3EBDD] font-semibold dark:bg-[#2B3543]"
+                                            : "border-[#E5DFD2] hover:border-[#D9AD60] dark:border-[#3B4C63]"
                                             }`}
                                     >
                                         <span className="block">{item}</span>
-                                        <span className="mt-1 block text-xs text-slate-500">
+                                        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-300">
                                             {item === "1 vs 1"
                                                 ? "Two participants, opposing sides"
                                                 : "Two teams debating against each other"}
@@ -167,13 +167,13 @@ export default function CreateDebatePage() {
                                     id="visibility"
                                     value={visibility}
                                     onChange={(event) => setVisibility(event.target.value)}
-                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                                 >
                                     <option>Public</option>
                                     <option>Private</option>
                                 </select>
 
-                                <p className="mt-1 text-xs text-slate-400">
+                                <p className="mt-1 text-xs text-slate-400 dark:text-slate-400">
                                     Public debates can be discovered by the community.
                                 </p>
                             </section>
@@ -190,7 +190,7 @@ export default function CreateDebatePage() {
                                     id="duration"
                                     value={duration}
                                     onChange={(event) => setDuration(event.target.value)}
-                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60]"
+                                    className="w-full rounded-xl border border-[#D8DDE5] bg-[#FAFAF8] p-3 outline-none focus:border-[#D9AD60] dark:border-[#52637C] dark:bg-[#172940]"
                                 >
                                     <option>15 minutes</option>
                                     <option>30 minutes</option>
@@ -201,12 +201,12 @@ export default function CreateDebatePage() {
                         </div>
 
                         {/* Moderator Information */}
-                        <div className="rounded-xl bg-[#F3EBDD] p-4">
-                            <p className="font-semibold text-[#192F50]">
+                        <div className="rounded-xl bg-[#F3EBDD] p-4 dark:bg-[#2B3543]">
+                            <p className="font-semibold text-[#192F50] dark:text-[#F8F5EC]">
                                 You will be the moderator
                             </p>
 
-                            <p className="mt-1 text-sm text-slate-600">
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                                 As the debate creator, you can manage the debate, invite participants,
                                 and control its flow.
                             </p>
@@ -215,17 +215,17 @@ export default function CreateDebatePage() {
                         {message && (
                             <div
                                 role="status"
-                                className="rounded-xl border border-[#D9AD60] bg-[#F3EBDD] p-4 text-sm text-[#192F50]"
+                                className="rounded-xl border border-[#D9AD60] bg-[#F3EBDD] p-4 text-sm text-[#192F50] dark:bg-[#2B3543] dark:text-[#F8F5EC]"
                             >
                                 {message}
                             </div>
                         )}
 
                         {/* Actions */}
-                        <div className="flex flex-wrap justify-end gap-3 border-t border-[#E5DFD2] pt-5">
+                        <div className="flex flex-wrap justify-end gap-3 border-t border-[#E5DFD2] pt-5 dark:border-[#3B4C63]">
                             <Link
                                 href="/"
-                                className="rounded-xl border border-[#D8DDE5] px-5 py-3 text-sm font-semibold hover:bg-slate-50"
+                                className="rounded-xl border border-[#D8DDE5] px-5 py-3 text-sm font-semibold hover:bg-slate-50 dark:border-[#52637C] dark:hover:bg-[#304765]"
                             >
                                 Cancel
                             </Link>

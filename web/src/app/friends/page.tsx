@@ -68,13 +68,13 @@ export default function FriendsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8F5EC] text-[#192F50]">
+        <div className="dashboard-shell flex min-h-screen flex-col bg-[#F8F5EC] text-[#192F50] md:flex-row dark:bg-[#101D30] dark:text-[#F8F5EC] dark:[color-scheme:dark]">
             <DashboardSidebar />
 
-            <main className="min-h-screen md:ml-64">
-                <div className="mx-auto max-w-7xl p-6 md:p-10">
+            <main className="min-w-0 flex-1">
+                <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
                     <div className="mb-8">
-                        <p className="text-sm font-medium text-[#9A7B43]">
+                        <p className="text-sm font-medium text-[#9A7B43] dark:text-[#D9AD60]">
                             SOCIAL
                         </p>
 
@@ -82,20 +82,20 @@ export default function FriendsPage() {
                             Friends
                         </h1>
 
-                        <p className="mt-2 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-gray-600 dark:text-slate-300">
                             Connect with people and invite them to your debates.
                         </p>
                     </div>
 
                     {/* Summary */}
                     <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-[#E7DFCF] bg-white p-5">
-                            <p className="text-sm text-gray-500">Total Friends</p>
+                        <div className="rounded-2xl border border-[#E7DFCF] bg-white p-5 dark:border-[#3B4C63] dark:bg-[#20334E]">
+                            <p className="text-sm text-gray-500 dark:text-slate-300">Total Friends</p>
                             <p className="mt-2 text-3xl font-bold">{friends.length}</p>
                         </div>
 
-                        <div className="rounded-2xl border border-[#E7DFCF] bg-white p-5">
-                            <p className="text-sm text-gray-500">Online Friends</p>
+                        <div className="rounded-2xl border border-[#E7DFCF] bg-white p-5 dark:border-[#3B4C63] dark:bg-[#20334E]">
+                            <p className="text-sm text-gray-500 dark:text-slate-300">Online Friends</p>
                             <p className="mt-2 text-3xl font-bold">
                                 {friends.filter((friend) => friend.status === "online").length}
                             </p>
@@ -108,15 +108,17 @@ export default function FriendsPage() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search friends..."
-                            className="w-full rounded-xl border border-[#E7DFCF] bg-white px-4 py-3 outline-none focus:border-[#D9AD60] sm:max-w-md"
+                            aria-label="Search friends"
+                            className="w-full rounded-xl border border-[#E7DFCF] bg-white px-4 py-3 outline-none focus:border-[#D9AD60] sm:max-w-md dark:border-[#3B4C63] dark:bg-[#20334E]"
                         />
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => setSelectedTab("all")}
+                                aria-pressed={selectedTab === "all"}
                                 className={`rounded-xl px-4 py-2 text-sm font-medium ${selectedTab === "all"
                                     ? "bg-[#192F50] text-white"
-                                    : "border border-[#E7DFCF] bg-white"
+                                    : "border border-[#E7DFCF] bg-white dark:border-[#3B4C63] dark:bg-[#20334E]"
                                     }`}
                             >
                                 All Friends
@@ -124,9 +126,10 @@ export default function FriendsPage() {
 
                             <button
                                 onClick={() => setSelectedTab("online")}
+                                aria-pressed={selectedTab === "online"}
                                 className={`rounded-xl px-4 py-2 text-sm font-medium ${selectedTab === "online"
                                     ? "bg-[#192F50] text-white"
-                                    : "border border-[#E7DFCF] bg-white"
+                                    : "border border-[#E7DFCF] bg-white dark:border-[#3B4C63] dark:bg-[#20334E]"
                                     }`}
                             >
                                 Online
@@ -136,21 +139,21 @@ export default function FriendsPage() {
 
                     {/* Friends list */}
                     {filteredFriends.length === 0 ? (
-                        <div className="rounded-2xl border border-[#E7DFCF] bg-white p-10 text-center">
+                        <div className="rounded-2xl border border-[#E7DFCF] bg-white p-10 text-center dark:border-[#3B4C63] dark:bg-[#20334E]">
                             <h2 className="font-semibold">No friends found</h2>
-                            <p className="mt-2 text-sm text-gray-500">
+                            <p className="mt-2 text-sm text-gray-500 dark:text-slate-300">
                                 Try another search.
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                             {filteredFriends.map((friend) => (
                                 <div
                                     key={friend.id}
-                                    className="flex flex-col gap-4 rounded-2xl border border-[#E7DFCF] bg-white p-5 sm:flex-row sm:items-center sm:justify-between"
+                                    className="flex flex-wrap gap-4 rounded-2xl border border-[#E7DFCF] bg-white p-5 sm:flex-row sm:items-center sm:justify-between dark:border-[#3B4C63] dark:bg-[#20334E]"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-[#192F50] font-bold text-white">
+                                        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#192F50] font-bold text-white">
                                             {friend.name
                                                 .split(" ")
                                                 .map((part) => part[0])
@@ -166,16 +169,16 @@ export default function FriendsPage() {
 
                                         <div>
                                             <h2 className="font-semibold">{friend.name}</h2>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-sm text-gray-500 dark:text-slate-300">
                                                 {friend.username}
                                             </p>
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-slate-300">
                                                 {friend.debates} debates participated
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         <button
                                             onClick={() => router.push("/invitations")}
                                             className="rounded-xl bg-[#D9AD60] px-4 py-2 text-sm font-semibold text-[#192F50] transition hover:bg-[#C99A4C]"
@@ -185,7 +188,7 @@ export default function FriendsPage() {
 
                                         <button
                                             onClick={() => removeFriend(friend.id)}
-                                            className="rounded-xl border border-[#E7DFCF] px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
+                                            className="rounded-xl border border-[#E7DFCF] px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 dark:border-[#3B4C63] dark:text-slate-300 dark:hover:bg-[#304765]"
                                         >
                                             Remove
                                         </button>
@@ -195,7 +198,7 @@ export default function FriendsPage() {
                         </div>
                     )}
 
-                    <p className="mt-6 text-xs text-gray-400">
+                    <p className="mt-6 text-xs text-gray-400 dark:text-slate-400">
                         Demo data only. Friend management will be connected to the backend later.
                     </p>
                 </div>
