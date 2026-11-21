@@ -10,6 +10,7 @@ from google import genai
 from google.genai import types
 from livekit import rtc
 from livekit.agents import AgentServer, JobContext, cli
+from fact_check_pipeline import process_transcript
 
 ENV_PATH = Path(__file__).resolve().parent.parent / "web" / ".env.local"
 load_dotenv(ENV_PATH)
@@ -39,6 +40,31 @@ def describe_track(publication, participant):
     )
 
 
+async def run_fact_check_and_publish(
+    text: str,
+    identity: str,
+    timestamp: str,
+    room: rtc.Room,
+):
+    """Run the synchronous fact-checking pipeline in a worker thread and publish results."""
+    try:
+        results = await asyncio.to_thread(process_transcript, text, identity, timestamp)
+        if not results:
+            return
+
+        for result in results:
+            await room.local_participant.publish_data(
+                json.dumps(result).encode("utf-8"),
+                reliable=True,
+                topic="debate-fact-check",
+            )
+            diagnostic(
+                f"Fact-check published: participant={identity} "
+                f"verdict={result['verdict']} claim={result['normalizedClaim']!r}"
+            )
+    except Exception as exc:
+        diagnostic(f"Fact-check error (transcription unaffected) for {identity}: {exc}")
+
 async def transcribe_track(
     track: rtc.Track,
     identity: str,
@@ -59,6 +85,8 @@ async def transcribe_track(
         num_channels=1,
         frame_size_ms=100,
     )
+
+    fact_check_tasks: set[asyncio.Task] = set()
 
     try:
         diagnostic(f"Connecting to Gemini: participant={identity} model={MODEL} api=v1beta")
@@ -137,6 +165,13 @@ async def transcribe_track(
                         )
                         
                         print(f"Transcript published for {identity}")
+
+                        fc_task = asyncio.create_task(
+                            run_fact_check_and_publish(text, identity, timestamp, room)
+                        )
+                        fact_check_tasks.add(fc_task)
+                        fc_task.add_done_callback(fact_check_tasks.discard)
+                        
                 diagnostic(f"Gemini receive stream ended: participant={identity}")
 
             sender = asyncio.create_task(send_audio())

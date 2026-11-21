@@ -1,7 +1,7 @@
-
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, AgentDispatchClient } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
 
+const AGENT_NAME = "gemini-transcriber";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +34,31 @@ export async function POST(request: NextRequest) {
         { error: "LiveKit server configuration is missing." },
         { status: 500 }
       );
+    }
+
+    // Ensure the transcription + fact-check agent is dispatched once per room
+    const httpUrl = serverUrl
+      .replace(/^wss:\/\//, "https://")
+      .replace(/^ws:\/\//, "http://");
+    const dispatchClient = new AgentDispatchClient(httpUrl, apiKey, apiSecret);
+
+    try {
+      let existingDispatches: Array<{ agentName?: string }> = [];
+      try {
+        existingDispatches = await dispatchClient.listDispatch(roomName);
+      } catch {
+        // Room may not exist yet; proceed to create dispatch
+      }
+
+      const alreadyDispatched = existingDispatches.some(
+        (d) => d.agentName === AGENT_NAME
+      );
+
+      if (!alreadyDispatched) {
+        await dispatchClient.createDispatch(roomName, AGENT_NAME);
+      }
+    } catch (dispatchError) {
+      console.error("Failed to dispatch LiveKit agent:", dispatchError);
     }
 
     const token = new AccessToken(apiKey, apiSecret, {
