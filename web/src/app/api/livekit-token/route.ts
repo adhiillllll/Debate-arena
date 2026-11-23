@@ -1,4 +1,8 @@
-import { AccessToken, AgentDispatchClient } from "livekit-server-sdk";
+import {
+  AccessToken,
+  AgentDispatchClient,
+  RoomServiceClient,
+} from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
 
 const AGENT_NAME = "gemini-transcriber";
@@ -36,23 +40,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure the transcription + fact-check agent is dispatched once per room
     const httpUrl = serverUrl
       .replace(/^wss:\/\//, "https://")
       .replace(/^ws:\/\//, "http://");
+    const roomService = new RoomServiceClient(httpUrl, apiKey, apiSecret);
     const dispatchClient = new AgentDispatchClient(httpUrl, apiKey, apiSecret);
 
     try {
-      let existingDispatches: Array<{ agentName?: string }> = [];
+      let agentAlreadyInRoom = false;
+
+      // 1. Check if an agent participant is already connected in this room
       try {
-        existingDispatches = await dispatchClient.listDispatch(roomName);
+        const participants = await roomService.listParticipants(roomName);
+        agentAlreadyInRoom = participants.some((p) =>
+          p.identity.startsWith("agent-")
+        );
       } catch {
-        // Room may not exist yet; proceed to create dispatch
+        // Room does not exist yet
       }
 
-      const alreadyDispatched = existingDispatches.some(
-        (d) => d.agentName === AGENT_NAME
-      );
+      // 2. Also check pending dispatches if no agent is connected yet
+      let alreadyDispatched = agentAlreadyInRoom;
+      if (!alreadyDispatched) {
+        try {
+          const existingDispatches = await dispatchClient.listDispatch(roomName);
+          alreadyDispatched = existingDispatches.some(
+            (d) => d.agentName === AGENT_NAME
+          );
+        } catch {
+          // Room does not exist yet
+        }
+      }
 
       if (!alreadyDispatched) {
         await dispatchClient.createDispatch(roomName, AGENT_NAME);

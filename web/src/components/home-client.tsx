@@ -128,6 +128,282 @@ function LiveTranscriptPanel() {
   );
 }
 
+type FactCheckVerdict =
+  | "SUPPORTED"
+  | "REFUTED"
+  | "PARTIALLY_SUPPORTED"
+  | "CONTRADICTORY_EVIDENCE"
+  | "INSUFFICIENT_EVIDENCE";
+
+type FactCheckSource = {
+  chunkId: string;
+  sourceId: string;
+  chunkIndex: number;
+  similarity: number;
+  title: string;
+  url: string;
+  content: string;
+};
+
+type FactCheckMessage = {
+  type: "fact_check";
+  participantIdentity: string;
+  timestamp: string;
+  originalText: string;
+  normalizedClaim: string;
+  verdict: FactCheckVerdict;
+  confidence: number;
+  explanation: string;
+  sources: FactCheckSource[];
+};
+
+type ModeratorReviewStatus = "PENDING" | "REVIEWED" | "DISMISSED";
+
+type FactCheckCardItem = FactCheckMessage & {
+  localId: string;
+  reviewStatus: ModeratorReviewStatus;
+};
+
+const VERDICT_STYLES: Record<
+  FactCheckVerdict,
+  { label: string; badgeClass: string }
+> = {
+  SUPPORTED: {
+    label: "Supported by Evidence",
+    badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  },
+  REFUTED: {
+    label: "Contradicted by Evidence",
+    badgeClass: "bg-red-100 text-red-800 border-red-200",
+  },
+  PARTIALLY_SUPPORTED: {
+    label: "Partially Supported",
+    badgeClass: "bg-amber-100 text-amber-800 border-amber-200",
+  },
+  CONTRADICTORY_EVIDENCE: {
+    label: "Conflicting Evidence",
+    badgeClass: "bg-orange-100 text-orange-800 border-orange-200",
+  },
+  INSUFFICIENT_EVIDENCE: {
+    label: "Insufficient Evidence",
+    badgeClass: "bg-slate-200 text-slate-700 border-slate-300",
+  },
+};
+
+function isSafeHttpUrl(url: string): boolean {
+  return url.startsWith("https://") || url.startsWith("http://");
+}
+
+function LiveFactCheckPanel() {
+  const room = useRoomContext();
+  const [items, setItems] = useState<FactCheckCardItem[]>([]);
+
+  useEffect(() => {
+    const handleDataReceived = (
+      payload: Uint8Array,
+      _participant: unknown,
+      _kind: unknown,
+      topic?: string
+    ) => {
+      if (topic !== "debate-fact-check") return;
+
+      try {
+        const decoded = new TextDecoder().decode(payload);
+        const message = JSON.parse(decoded) as FactCheckMessage;
+
+        if (
+          message.type !== "fact_check" ||
+          !message.participantIdentity ||
+          !message.normalizedClaim
+        ) {
+          return;
+        }
+
+        const card: FactCheckCardItem = {
+          ...message,
+          sources: Array.isArray(message.sources) ? message.sources : [],
+          localId: `${message.timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+          reviewStatus: "PENDING",
+        };
+
+        setItems((previous) => [card, ...previous]);
+      } catch (error) {
+        console.error("Failed to parse fact-check payload:", error);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleDataReceived);
+
+    return () => {
+      room.off(RoomEvent.DataReceived, handleDataReceived);
+    };
+  }, [room]);
+
+  function updateReviewStatus(localId: string, status: ModeratorReviewStatus) {
+    setItems((previous) =>
+      previous.map((item) =>
+        item.localId === localId ? { ...item, reviewStatus: status } : item
+      )
+    );
+  }
+
+  return (
+    <section className="mt-8 border-t border-slate-200 pt-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900">
+            AI Evidence Assistant (Moderator View)
+          </h3>
+          <p className="text-xs text-slate-500">
+            Evidence-based suggestions only. Human moderator retains final control.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+          {items.length} {items.length === 1 ? "claim" : "claims"} analyzed
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+          Listening for verifiable factual claims from live speech...
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {items.map((item) => {
+            const verdictMeta =
+              VERDICT_STYLES[item.verdict] ??
+              VERDICT_STYLES.INSUFFICIENT_EVIDENCE;
+            const confidencePct = Math.round((item.confidence ?? 0) * 100);
+            const isDismissed = item.reviewStatus === "DISMISSED";
+
+            return (
+              <article
+                key={item.localId}
+                className={`rounded-xl border p-4 transition ${isDismissed
+                    ? "border-slate-200 bg-slate-50 opacity-60"
+                    : "border-slate-200 bg-white shadow-xs"
+                  }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-[#192F50] px-2.5 py-0.5 text-xs font-semibold text-white">
+                      {item.participantIdentity}
+                    </span>
+
+                    <span
+                      className={`rounded-md border px-2.5 py-0.5 text-xs font-semibold ${verdictMeta.badgeClass}`}
+                    >
+                      {verdictMeta.label}
+                    </span>
+
+                    <span className="text-xs text-slate-500">
+                      Confidence: {confidencePct}%
+                    </span>
+                  </div>
+
+                  <span className="text-xs text-slate-400">
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+
+                <div className="mt-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Claim: {item.normalizedClaim}
+                  </p>
+                  {item.originalText &&
+                    item.originalText !== item.normalizedClaim && (
+                      <p className="mt-1 text-xs italic text-slate-500">
+                        Quote: “{item.originalText}”
+                      </p>
+                    )}
+                </div>
+
+                <p className="mt-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+                  {item.explanation}
+                </p>
+
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Retrieved Sources ({item.sources.length})
+                  </p>
+
+                  {item.sources.length === 0 ? (
+                    <p className="text-xs text-slate-500">
+                      No matching evidence chunks met the similarity threshold.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {item.sources.map((source) => (
+                        <li
+                          key={`${source.chunkId}-${source.chunkIndex}`}
+                          className="rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-xs"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            {isSafeHttpUrl(source.url) ? (
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-semibold text-blue-700 hover:underline"
+                              >
+                                {source.title}
+                              </a>
+                            ) : (
+                              <span className="font-semibold text-slate-800">
+                                {source.title}
+                              </span>
+                            )}
+
+                            <span className="text-slate-500">
+                              Similarity: {Math.round(source.similarity * 100)}%
+                            </span>
+                          </div>
+
+                          <p className="mt-1 text-slate-600">{source.content}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                  <span className="text-xs font-medium text-slate-500">
+                    Moderator Status:{" "}
+                    <strong className="text-slate-700">
+                      {item.reviewStatus}
+                    </strong>
+                  </span>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateReviewStatus(item.localId, "REVIEWED")
+                      }
+                      className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                    >
+                      Mark Reviewed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateReviewStatus(item.localId, "DISMISSED")
+                      }
+                      className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function Home() {
   const [roomName, setRoomName] = useState("debate-room-001");
@@ -193,7 +469,7 @@ export default function Home() {
           >
             <div
               data-lk-theme="default"
-              className="mx-auto max-w-2xl rounded-xl bg-white p-6 text-slate-900 shadow-sm"
+              className="mx-auto max-w-4xl rounded-xl bg-white p-6 text-slate-900 shadow-sm"
             >
               <h2 className="mb-3 text-xl font-semibold">
                 Live audio room
@@ -215,6 +491,7 @@ export default function Home() {
               />
 
               <LiveTranscriptPanel />
+              <LiveFactCheckPanel />
             </div>
           </LiveKitRoom>
         </div>
