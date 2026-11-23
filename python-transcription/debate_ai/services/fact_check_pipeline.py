@@ -1,82 +1,28 @@
+"""
+End-to-end fact-checking pipeline.
+
+Moved from the root ``fact_check_pipeline.py``.
+Orchestrates: claim extraction → evidence retrieval → fact verification.
+"""
+
 import json
-import os
 from datetime import datetime
-from pathlib import Path
 
-import psycopg2
-from dotenv import load_dotenv
-
-from embedding_service import generate_embedding
-from extract_claims import extract_factual_claims
-from verify_facts import Verdict, verify_claim
-
-# Load both .env (DATABASE_URL) and .env.local (GEMINI_API_KEY)
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
-load_dotenv(WEB_DIR / ".env")
-load_dotenv(WEB_DIR / ".env.local")
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL not found in web/.env")
-
-SIMILARITY_THRESHOLD = 0.70
-MATCH_COUNT = 3
-MIN_TRANSCRIPT_CHARS = 20
-MIN_TRANSCRIPT_WORDS = 4
+from debate_ai.config import MIN_TRANSCRIPT_CHARS, MIN_TRANSCRIPT_WORDS
+from debate_ai.db.evidence_repo import match_evidence_chunks
+from debate_ai.schemas.fact_check import Verdict
+from debate_ai.services.claim_extractor import extract_factual_claims
+from debate_ai.services.embedding_service import generate_embedding
+from debate_ai.services.fact_verifier import verify_claim
 
 
 def search_evidence(
     claim: str,
-    match_count: int = MATCH_COUNT,
-    similarity_threshold: float = SIMILARITY_THRESHOLD,
 ) -> list[dict]:
     """Embed a claim and retrieve matching evidence chunks with source metadata."""
     vector = generate_embedding(claim, "FACT_VERIFICATION")
     vector_str = f"[{','.join(map(str, vector))}]"
-
-    conn = None
-    cur = None
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-
-        # Join with evidence_sources so source title and URL are always preserved
-        query = """
-            SELECT
-                m.id,
-                m."sourceId",
-                m.content,
-                m."chunkIndex",
-                m.similarity,
-                s.title,
-                s.url
-            FROM public.match_evidence_chunks(%s::vector(768), %s, %s) m
-            JOIN public.evidence_sources s ON s.id = m."sourceId"
-            ORDER BY m.similarity DESC;
-        """
-        cur.execute(query, (vector_str, match_count, similarity_threshold))
-        rows = cur.fetchall()
-
-        results = []
-        for row in rows:
-            chunk_id, source_id, content, chunk_index, similarity, title, url = row
-            results.append(
-                {
-                    "chunkId": str(chunk_id),
-                    "sourceId": str(source_id),
-                    "chunkIndex": chunk_index,
-                    "similarity": round(float(similarity), 4),
-                    "title": title,
-                    "url": url,
-                    "content": content,
-                }
-            )
-        return results
-    finally:
-        if cur is not None:
-            cur.close()
-        if conn is not None:
-            conn.close()
+    return match_evidence_chunks(vector_str)
 
 
 def process_transcript(
@@ -101,7 +47,7 @@ def process_transcript(
     if not extracted or not extracted.claims:
         return []
 
-    fact_check_payloads = []
+    fact_check_payloads: list[dict] = []
 
     for claim in extracted.claims:
         if not claim.is_verifiable:

@@ -1,7 +1,13 @@
+"""
+Entrypoint 2: LiveKit WebRTC transcription worker.
+
+Usage:
+    python gemini_transcribe_agent.py start
+"""
 
 import asyncio
-import os
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -10,19 +16,24 @@ from google import genai
 from google.genai import types
 from livekit import rtc
 from livekit.agents import AgentServer, JobContext, cli
-from fact_check_pipeline import process_transcript
+
+from debate_ai.config import (
+    GEMINI_API_KEY,
+    TRANSCRIPTION_API_VERSION,
+    TRANSCRIPTION_LANGUAGE_CODES,
+    TRANSCRIPTION_MODEL,
+)
+from debate_ai.services.fact_check_pipeline import process_transcript
 
 ENV_PATH = Path(__file__).resolve().parent.parent / "web" / ".env.local"
 load_dotenv(ENV_PATH)
 
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise RuntimeError("GEMINI_API_KEY is missing from web/.env.local")
+api_key = GEMINI_API_KEY
 
-client = genai.Client(api_key=api_key, http_options={"api_version": "v1beta"})
+client = genai.Client(api_key=api_key, http_options={"api_version": TRANSCRIPTION_API_VERSION})
 server = AgentServer()
 
-MODEL = "gemini-3.5-transcribe-live"
+MODEL = TRANSCRIPTION_MODEL
 TRANSCRIPT_FILE = Path(__file__).resolve().parent / "gemini_transcripts.txt"
 
 
@@ -75,7 +86,7 @@ async def transcribe_track(
     config = types.LiveConnectConfig(
         response_modalities=["TEXT"],
         input_audio_transcription=types.AudioTranscriptionConfig(
-            language_codes=["ml-IN", "en-US"],
+            language_codes=TRANSCRIPTION_LANGUAGE_CODES,
         ),
     )
 
@@ -89,7 +100,7 @@ async def transcribe_track(
     fact_check_tasks: set[asyncio.Task] = set()
 
     try:
-        diagnostic(f"Connecting to Gemini: participant={identity} model={MODEL} api=v1beta")
+        diagnostic(f"Connecting to Gemini: participant={identity} model={MODEL} api={TRANSCRIPTION_API_VERSION}")
         async with client.aio.live.connect(
             model=MODEL,
             config=config,
