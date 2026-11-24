@@ -48,6 +48,29 @@ enum DebateRoundStatus {
   SKIPPED
 }
 
+enum ClaimProcessingStatus {
+  DETECTED
+  CHECKING
+  COMPLETED
+  FAILED
+}
+
+enum FactCheckVerdict {
+  SUPPORTED
+  REFUTED
+  PARTIALLY_SUPPORTED
+  CONTRADICTORY_EVIDENCE
+  INSUFFICIENT_EVIDENCE
+}
+
+enum EvidenceSourceType {
+  GOVERNMENT
+  RESEARCH_PAPER
+  NEWS
+  ORGANIZATION
+  OTHER
+}
+
 model User {
   id          String   @id @db.Uuid
   username    String?  @unique
@@ -70,6 +93,8 @@ model Debate {
   title       String
   topic       String
   description String?
+  category        String?
+  durationMinutes Int              @default(30)
   visibility  DebateVisibility @default(PUBLIC)
   status      DebateStatus     @default(DRAFT)
   hostId      String           @db.Uuid
@@ -89,6 +114,14 @@ model Debate {
   votes Vote[]
 
   report DebateReport?
+
+  debateEvidence DebateEvidence[]
+
+  factualClaims FactualClaim[]
+
+  topicBrief DebateTopicBrief?
+
+  precheckSubmissions DebatePrecheckSubmission[]
 
   @@index([visibility, status])
   @@index([hostId])
@@ -110,6 +143,10 @@ model DebateParticipant {
   transcripts Transcript[]
 
   votesReceived Vote[] @relation("VoteTarget")
+
+  factualClaims FactualClaim[]
+
+  precheckSubmissions DebatePrecheckSubmission[]
 
   @@unique([debateId, userId])
   @@index([debateId, role, status])
@@ -154,6 +191,8 @@ model Transcript {
   round       DebateRound?       @relation(fields: [roundId], references: [id], onDelete: SetNull)
   participant DebateParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
 
+  factualClaims FactualClaim[]
+
   @@index([debateId, createdAt])
   @@index([roundId, createdAt])
   @@index([participantId])
@@ -188,4 +227,144 @@ model DebateReport {
   debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
 
   @@map("debate_reports")
+}
+
+model EvidenceSource {
+  id               String             @id @default(uuid()) @db.Uuid
+  title            String
+  publisher        String?
+  url              String             @unique
+  publishedAt      DateTime?          @db.Timestamptz(6)
+  retrievedAt      DateTime           @default(now()) @db.Timestamptz(6)
+  sourceType       EvidenceSourceType @default(OTHER)
+  reliabilityNotes String?
+  contentHash      String?
+
+  chunks         EvidenceChunk[]
+  debateEvidence DebateEvidence[]
+
+  @@index([publisher])
+  @@index([sourceType])
+  @@map("evidence_sources")
+}
+
+model EvidenceChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  sourceId   String   @db.Uuid
+  content    String
+  chunkIndex Int
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  source            EvidenceSource      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  factCheckEvidence FactCheckEvidence[]
+
+  embedding Unsupported("vector(768)")?
+
+  @@unique([sourceId, chunkIndex])
+  @@index([sourceId])
+  @@map("evidence_chunks")
+}
+
+model DebateEvidence {
+  id             String   @id @default(uuid()) @db.Uuid
+  debateId       String   @db.Uuid
+  sourceId       String   @db.Uuid
+  relevanceScore Float?
+  addedAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  debate Debate         @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  source EvidenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([debateId, sourceId])
+  @@index([debateId])
+  @@map("debate_evidence")
+}
+
+model FactualClaim {
+  id              String                @id @default(uuid()) @db.Uuid
+  debateId        String                @db.Uuid
+  transcriptId    String                @db.Uuid
+  participantId   String?               @db.Uuid
+  originalText    String
+  normalizedClaim String
+  language        String?
+  status          ClaimProcessingStatus @default(DETECTED)
+  detectedAt      DateTime              @default(now()) @db.Timestamptz(6)
+
+  debate      Debate             @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  transcript  Transcript         @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+  participant DebateParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  results     FactCheckResult[]
+
+  @@index([debateId, detectedAt])
+  @@index([transcriptId])
+  @@index([status])
+  @@map("factual_claims")
+}
+
+model FactCheckResult {
+  id          String           @id @default(uuid()) @db.Uuid
+  claimId     String           @db.Uuid
+  modelName   String
+  verdict     FactCheckVerdict
+  confidence  Float?
+  explanation String
+  checkedAt   DateTime         @default(now()) @db.Timestamptz(6)
+
+  claim    FactualClaim        @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  evidence FactCheckEvidence[]
+
+  @@index([claimId, checkedAt])
+  @@map("fact_check_results")
+}
+
+model FactCheckEvidence {
+  id                String   @id @default(uuid()) @db.Uuid
+  factCheckResultId String   @db.Uuid
+  evidenceChunkId   String   @db.Uuid
+  relevanceScore    Float?
+  supportsClaim     Boolean?
+
+  factCheckResult FactCheckResult @relation(fields: [factCheckResultId], references: [id], onDelete: Cascade)
+  evidenceChunk   EvidenceChunk   @relation(fields: [evidenceChunkId], references: [id], onDelete: Cascade)
+
+  @@unique([factCheckResultId, evidenceChunkId])
+  @@index([factCheckResultId])
+  @@map("fact_check_evidence")
+}
+
+model DebateTopicBrief {
+  id          String   @id @default(uuid()) @db.Uuid
+  debateId    String   @unique @db.Uuid
+  coreSummary String
+  briefData   Json
+  modelName   String
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  debate Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  @@map("debate_topic_briefs")
+}
+
+model DebatePrecheckSubmission {
+  id              String   @id @default(uuid()) @db.Uuid
+  debateId        String   @db.Uuid
+  participantId   String   @db.Uuid
+  questionId      String
+  questionText    String
+  debaterResponse String
+  isValid         Boolean  @default(false)
+  score           Float?
+  feedback        String
+  suggestion      String?
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+
+  debate      Debate            @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  participant DebateParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([debateId, participantId, questionId])
+  @@index([debateId, participantId])
+  @@map("debate_precheck_submissions")
 }
