@@ -44,3 +44,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Local AI editor metadata
+web/.agents/
+web/.claude/
+web/.windsurf/
+web/AGENTS.md
+web/skills-lock.json
