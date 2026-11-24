@@ -40,13 +40,13 @@ def _retrieve_supporting_snippets(text: str) -> list[str]:
                 cur.execute(
                     """
                     SELECT content
-                    FROM match_evidence_chunks(
-                        %s::vector,
-                        %s::double precision,
-                        %s::int
-                    );
+                    FROM evidence_chunks
+                    WHERE embedding IS NOT NULL
+                      AND 1 - (embedding <=> %s::vector) >= %s
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s;
                     """,
-                    (vector_literal, SIMILARITY_THRESHOLD, MATCH_COUNT),
+                    (vector_literal, SIMILARITY_THRESHOLD, vector_literal, MATCH_COUNT),
                 )
                 rows = cur.fetchall()
         finally:
@@ -110,7 +110,7 @@ def generate_and_store_topic_brief(
                     f"Attempt {attempt + 1}/{max_retries}...",
                     flush=True,
                 )
-                time.sleep(1)
+                time.sleep(2 * (attempt + 1))
             except Exception as exc:
                 print(
                     f"[topic_precheck] {model_name} failed ({exc}). Trying fallback...",
@@ -256,7 +256,7 @@ def validate_and_store_precheck(
                     f"Attempt {attempt + 1}/{max_retries}...",
                     flush=True,
                 )
-                time.sleep(1)
+                time.sleep(2 * (attempt + 1))
             except Exception as exc:
                 print(
                     f"[topic_precheck] Validation {model_name} failed ({exc}). Trying fallback...",
