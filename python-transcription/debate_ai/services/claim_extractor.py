@@ -1,14 +1,13 @@
-"""
-Claim extractor – identifies verifiable factual claims in debate transcripts.
-
-Moved from the root ``extract_claims.py``.
-"""
+"""Extract verifiable factual claims from raw live debate speech."""
 
 import time
-
 from google.genai import errors, types
 
-from debate_ai.config import DEV_MODE, EXTRACTION_MODELS, extraction_client
+from debate_ai.config import (
+    DEV_MODE,
+    EXTRACTION_MODELS,
+    extraction_client,
+)
 from debate_ai.schemas.fact_check import ClaimList, ExtractedClaim
 
 
@@ -16,11 +15,11 @@ def extract_factual_claims(
     transcript_segment: str,
     speaker_name: str,
     max_retries: int = 2,
+    debate_context: str | None = None,
 ) -> ClaimList | None:
     """Identify and extract verifiable factual claims from raw debate speech."""
 
     if DEV_MODE:
-        print("\n[DEV MODE ACTIVE] Returning mock claims...")
         return ClaimList(
             claims=[
                 ExtractedClaim(
@@ -36,12 +35,23 @@ def extract_factual_claims(
             ]
         )
 
+    context_block = (
+        f"\nDebate Topic Context:\n{debate_context.strip()}\n"
+        if debate_context and debate_context.strip()
+        else ""
+    )
+
     prompt = f"""
-    You are an AI claim extractor for a live debate (which may contain English, Malayalam, or mixed speech).
-    Analyze the following transcript segment from a debater named {speaker_name}.
-    Identify any factual propositions that can be verified against evidence.
-    Ignore opinions, rhetorical questions, greetings, and conversational filler.
-    Write each normalized_claim as a clear, self-contained factual sentence in English so it matches the evidence library.
+    You are an AI claim extractor for a live Indian debate (which may contain Indian English, Malayalam, or Malayalam-English code-switched speech).
+    {context_block}
+    Analyze the following raw speech-to-text transcript segment from a debater named {speaker_name}.
+
+    Rules:
+    1. Identify only clear, verifiable factual propositions that can be checked against evidence.
+    2. Ignore opinions, rhetorical questions, greetings, and conversational filler.
+    3. Because live speech-to-text can introduce minor phonetic homophone errors in Indian English or Malayalam (for example, "strict bands" instead of "strict bans", or "his said" instead of "essays"), use the Debate Topic Context to normalize obvious phonetic slips ONLY when the intended meaning is clear.
+    4. If a segment is heavily corrupted by speech-to-text errors and its factual meaning cannot be reliably understood, return an empty claims list (or set is_verifiable=false). Do NOT invent claims from garbled words.
+    5. Write each normalized_claim as a clean, self-contained factual sentence in English so it matches the evidence library.
 
     Transcript: "{transcript_segment}"
     """
@@ -61,16 +71,16 @@ def extract_factual_claims(
                 return response.parsed
             except errors.ServerError as exc:
                 print(
-                    f"[extract_claims] {model_name} busy ({exc.code}). "
+                    f"[claim_extractor] {model_name} busy ({exc.code}). "
                     f"Attempt {attempt + 1}/{max_retries}..."
                 )
                 time.sleep(1)
             except Exception as exc:
                 print(
-                    f"[extract_claims] {model_name} failed ({exc}). "
+                    f"[claim_extractor] {model_name} failed ({exc}). "
                     f"Trying next fallback model..."
                 )
                 break
 
-    print("[extract_claims] All Gemini models failed or timed out.")
+    print("[claim_extractor] All Gemini models failed or timed out.")
     return None
