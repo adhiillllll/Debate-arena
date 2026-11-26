@@ -54,7 +54,7 @@ DEV_MODE = False
 TRANSCRIPTION_MODEL = "gemini-3.5-transcribe-live"
 TRANSCRIPTION_API_VERSION = "v1beta"
 TRANSCRIPTION_LANGUAGE_CODES: list[str] = ["en-IN", "ml-IN"]
-TRANSCRIPTION_FRAME_MS = 40
+TRANSCRIPTION_FRAME_MS = 100
 TRANSCRIPTION_SILENCE_MS = 1200
 
 # ---------------------------------------------------------------------------

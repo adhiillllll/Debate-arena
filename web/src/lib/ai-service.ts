@@ -32,6 +32,74 @@ export type PrecheckValidationPayload = {
   suggestion: string | null;
 };
 
+export type DebateReportRequestPayload = {
+  debate_id: string;
+  title: string;
+  topic: string;
+  description?: string | null;
+  category?: string | null;
+  core_summary?: string | null;
+  participants: Array<{
+    participant_id: string;
+    display_name: string;
+    role: string;
+    vote_count: number;
+  }>;
+  transcripts: Array<{
+    speaker_name: string;
+    role: string;
+    text: string;
+    timestamp: string;
+  }>;
+  claims: Array<{
+    speaker_name: string;
+    normalized_claim: string;
+    verdict: string;
+    confidence?: number | null;
+    explanation: string;
+    sources: string[];
+  }>;
+  total_votes: number;
+};
+
+export type DebateReportResponsePayload = {
+  debate_id: string;
+  summary: string;
+  report_data: {
+    executive_summary: string;
+    participant_analyses: Array<{
+      participant_id: string;
+      display_name: string;
+      role: string;
+      core_stance: string;
+      key_arguments: string[];
+      evidence_usage_notes: string;
+      logical_consistency_notes: string;
+    }>;
+    claim_highlights: Array<{
+      speaker_name: string;
+      normalized_claim: string;
+      verdict: string;
+      explanation: string;
+      sources: string[];
+    }>;
+    unanswered_questions: string[];
+    moderator_takeaways: string[];
+    vote_summary?: {
+      total_votes: number;
+      breakdown: Array<{
+        participant_id: string;
+        display_name: string;
+        role: string;
+        votes: number;
+      }>;
+    };
+    model_name?: string;
+  };
+  model_name: string;
+};
+
+
 function buildHeaders(): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -89,4 +157,25 @@ export async function requestPrecheckValidation(input: {
   }
 
   return (await response.json()) as PrecheckValidationPayload;
+}
+
+export async function requestDebateReport(
+  input: DebateReportRequestPayload
+): Promise<DebateReportResponsePayload> {
+  const response = await fetch(`${AI_SERVICE_URL}/ai/generate-report`, {
+    method: "POST",
+    headers: buildHeaders(),
+    body: JSON.stringify(input),
+    signal: AbortSignal.timeout(45_000),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(
+      errBody.detail ?? `AI report generator returned ${response.status}`
+    );
+  }
+
+  return (await response.json()) as DebateReportResponsePayload;
 }

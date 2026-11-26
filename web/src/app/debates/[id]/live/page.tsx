@@ -41,6 +41,13 @@ type TokenConnection = {
   };
 };
 
+type VoteTallyItem = {
+  participantId: string;
+  userId: string;
+  displayName: string;
+  votes: number;
+};
+
 export default function LiveDebateRoomPage({
   params,
 }: {
@@ -60,21 +67,50 @@ export default function LiveDebateRoomPage({
     LiveFactCheckItem[]
   >([]);
   const [connection, setConnection] = useState<TokenConnection | null>(null);
+  const [voteTally, setVoteTally] = useState<VoteTallyItem[]>([]);
+  const [totalVotes, setTotalVotes] = useState(0);
+  const [myVoteParticipantId, setMyVoteParticipantId] = useState<string | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingParticipantId, setUpdatingParticipantId] = useState<
     string | null
   >(null);
+  const [submittingVoteId, setSubmittingVoteId] = useState<string | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [error, setError] = useState("");
 
+  async function refreshVotes() {
+    try {
+      const voteRes = await fetch(`/api/debates/${debateId}/vote`);
+      const voteData = await voteRes.json();
+      if (voteRes.ok) {
+        setVoteTally(voteData.tally ?? []);
+        setTotalVotes(voteData.totalVotes ?? 0);
+        setMyVoteParticipantId(voteData.myVoteParticipantId ?? null);
+      }
+    } catch {
+      // Non-fatal background vote tally refresh
+    }
+  }
+
   async function refreshRoomRoster() {
     try {
-      const roomRes = await fetch(`/api/debates/${debateId}/live`);
+      const [roomRes, voteRes] = await Promise.all([
+        fetch(`/api/debates/${debateId}/live`),
+        fetch(`/api/debates/${debateId}/vote`),
+      ]);
       const roomData = await roomRes.json();
       if (roomRes.ok) {
         setDebate(roomData.debate);
         setParticipants(roomData.participants ?? []);
+      }
+      const voteData = await voteRes.json();
+      if (voteRes.ok) {
+        setVoteTally(voteData.tally ?? []);
+        setTotalVotes(voteData.totalVotes ?? 0);
+        setMyVoteParticipantId(voteData.myVoteParticipantId ?? null);
       }
     } catch {
       // Non-fatal background roster refresh
@@ -100,12 +136,17 @@ export default function LiveDebateRoomPage({
           throw new Error(tokenData.error ?? "Unable to authorize room access.");
         }
 
-        const roomRes = await fetch(`/api/debates/${debateId}/live`);
+        const [roomRes, voteRes] = await Promise.all([
+          fetch(`/api/debates/${debateId}/live`),
+          fetch(`/api/debates/${debateId}/vote`),
+        ]);
         const roomData = await roomRes.json();
 
         if (!roomRes.ok) {
           throw new Error(roomData.error ?? "Unable to load debate room.");
         }
+
+        const voteData = await voteRes.json().catch(() => ({}));
 
         setConnection({
           serverUrl: tokenData.serverUrl,
@@ -116,6 +157,12 @@ export default function LiveDebateRoomPage({
         setParticipants(roomData.participants ?? []);
         setInitialTranscripts(roomData.transcripts ?? []);
         setInitialFactChecks(roomData.factChecks ?? []);
+
+        if (voteRes.ok) {
+          setVoteTally(voteData.tally ?? []);
+          setTotalVotes(voteData.totalVotes ?? 0);
+          setMyVoteParticipantId(voteData.myVoteParticipantId ?? null);
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to enter live room."
@@ -189,6 +236,29 @@ export default function LiveDebateRoomPage({
     }
   }
 
+  async function handleCastVote(targetParticipantId: string) {
+    setSubmittingVoteId(targetParticipantId);
+    setError("");
+    try {
+      const response = await fetch(`/api/debates/${debateId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId: targetParticipantId }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Could not record your vote.");
+      }
+      setVoteTally(data.tally ?? []);
+      setTotalVotes(data.totalVotes ?? 0);
+      setMyVoteParticipantId(data.myVoteParticipantId ?? null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Vote submission failed.");
+    } finally {
+      setSubmittingVoteId(null);
+    }
+  }
+
   const canModerate = connection?.participant.role === "MODERATOR";
   const canSpeak = connection?.participant.canPublish ?? false;
   const debaterCount = participants.filter((p) => p.role === "DEBATER").length;
@@ -217,6 +287,13 @@ export default function LiveDebateRoomPage({
                   ? "Invite Link Copied!"
                   : "Copy Debater Invite Link"}
               </button>
+
+              <Link
+                href={`/debates/${debateId}/report`}
+                className="rounded-xl border border-[#192F50] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#192F50] hover:bg-slate-100 dark:border-[#52637C] dark:bg-[#20334E] dark:text-[#F8F5EC]"
+              >
+                Post-Debate Report →
+              </Link>
 
               {connection && (
                 <span className="rounded-full bg-[#192F50] px-3 py-1 text-xs font-semibold text-white">
@@ -312,6 +389,21 @@ export default function LiveDebateRoomPage({
                         {debate.description}
                       </p>
                     )
+                  )}
+
+                  {debate.status === "ENDED" && (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#D9AD60] bg-[#F8F5EC] p-4 dark:bg-[#172940]">
+                      <p className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                        This debate session has ended. Review the synthesized
+                        evidence audit, argument breakdown, and poll results.
+                      </p>
+                      <Link
+                        href={`/debates/${debateId}/report`}
+                        className="rounded-xl bg-[#192F50] px-4 py-2 text-xs font-semibold text-white hover:bg-[#304765] dark:bg-[#D9AD60] dark:text-[#101D30]"
+                      >
+                        Open Analytical Report →
+                      </Link>
+                    </div>
                   )}
 
                   {/* Participant Roster & Role Controls */}
@@ -421,6 +513,122 @@ export default function LiveDebateRoomPage({
                       initialItems={initialFactChecks}
                       canModerate={canModerate}
                     />
+
+                    {/* Live Audience Voting Panel */}
+                    <section className="mt-8 border-t border-slate-200 pt-6 dark:border-[#3B4C63]">
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-lg font-bold text-[#192F50] dark:text-[#F8F5EC]">
+                            Audience Poll & Live Voting
+                          </h3>
+                          <p className="text-xs text-slate-500">
+                            One verified vote per account. Vote for the debater
+                            who presented the strongest evidence-backed case.
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="rounded-full bg-[#F3EBDD] px-3 py-1 text-xs font-semibold text-[#B58A42] dark:bg-[#2B3543] dark:text-[#D9AD60]">
+                            {totalVotes} {totalVotes === 1 ? "vote" : "votes"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void refreshVotes()}
+                            className="text-xs font-semibold text-[#B58A42] hover:underline dark:text-[#D9AD60]"
+                          >
+                            Refresh Tally
+                          </button>
+                        </div>
+                      </div>
+
+                      {voteTally.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500 dark:border-[#3B4C63] dark:bg-[#172940]">
+                          Waiting for debaters to be assigned before opening the
+                          audience poll...
+                        </div>
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {voteTally.map((candidate) => {
+                            const pct =
+                              totalVotes > 0
+                                ? Math.round(
+                                    (candidate.votes / totalVotes) * 100
+                                  )
+                                : 0;
+                            const isMyVote =
+                              myVoteParticipantId === candidate.participantId;
+                            const isSelf =
+                              connection.participant.id ===
+                              candidate.participantId;
+                            const isSubmitting =
+                              submittingVoteId === candidate.participantId;
+
+                            return (
+                              <div
+                                key={candidate.participantId}
+                                className={`rounded-xl border p-4 transition ${
+                                  isMyVote
+                                    ? "border-[#B58A42] bg-[#F8F5EC] dark:border-[#D9AD60] dark:bg-[#172940]"
+                                    : "border-slate-200 bg-white dark:border-[#3B4C63] dark:bg-[#172940]"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div>
+                                    <p className="font-bold text-[#192F50] dark:text-[#F8F5EC]">
+                                      {candidate.displayName}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      {candidate.votes}{" "}
+                                      {candidate.votes === 1 ? "vote" : "votes"}{" "}
+                                      ({pct}%)
+                                    </p>
+                                  </div>
+
+                                  {isSelf ? (
+                                    <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500 dark:bg-[#20334E]">
+                                      Your Slot
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        isSubmitting ||
+                                        debate?.status === "CANCELLED"
+                                      }
+                                      onClick={() =>
+                                        void handleCastVote(
+                                          candidate.participantId
+                                        )
+                                      }
+                                      className={`rounded-xl px-4 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                                        isMyVote
+                                          ? "bg-emerald-700 text-white"
+                                          : "bg-[#192F50] text-white hover:bg-[#304765] dark:bg-[#D9AD60] dark:text-[#101D30]"
+                                      }`}
+                                    >
+                                      {isSubmitting
+                                        ? "Saving..."
+                                        : isMyVote
+                                        ? "Voted ✓"
+                                        : myVoteParticipantId
+                                        ? "Switch Vote"
+                                        : "Cast Vote"}
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                                  <div
+                                    className="h-full bg-[#B58A42] transition-all duration-300 dark:bg-[#D9AD60]"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </section>
                   </div>
                 </LiveKitRoom>
               )}
